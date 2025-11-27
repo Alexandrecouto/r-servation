@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Module de Réservation Pro V3 - Haute Visibilité</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/airbnb.css">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght400;600;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        /* CSS du code original (inchangé) */
+        :root {
+            --primary: #FF385C; 
+            --primary-fade: rgba(255, 56, 92, 0.1);
+            --primary-super-fade: rgba(255, 56, 92, 0.05);
+            --dark: #222222;
+            --gray: #717171;
+            --success: #008a05; 
+            --shadow: 0 6px 20px rgba(0,0,0,0.1);
+        }
+
+        body { font-family: 'Inter', sans-serif; background-color: #F0F2F5; margin: 0; padding: 20px 10px; color: var(--dark); }
+        .container { max-width: 950px; margin: 0 auto; background: white; border-radius: 20px; box-shadow: var(--shadow); overflow: hidden; }
+
+        /* Header */
+        header { padding: 20px; text-align: center; background: #fff; border-bottom: 2px solid #f0f0f0; }
+        h1 { margin: 0; font-size: 1.4rem; font-weight: 800; }
+        
+        .status-badge { display: inline-block; margin-top: 8px; padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .status-badge.loading { color: #b45309; background: #fffbeb; }
+        .status-badge.synced { color: #047857; background: #ecfdf5; }
+        .status-badge.error { color: #be123c; background: #fff1f2; }
+
+        /* Layout Grid */
+        .content-grid { display: flex; flex-direction: column; }
+        @media(min-width: 768px) { .content-grid { flex-direction: row; align-items: stretch; } }
+
+        /* Calendar Section */
+        .calendar-section { padding: 25px; flex: 3; display: flex; justify-content: center; align-items: flex-start; background: #fff; }
+
+        /* Controls Section */
+        .controls-section { padding: 10px; flex: 2; background-color: #fff; display: flex; flex-direction: column; border-left: 2px solid #f0f0f0; }
+        
+        /* Flatpickr Styles */
+        .flatpickr-calendar { box-shadow: none !important; width: 100% !important; }
+        .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange { background: var(--primary) !important; border-color: var(--primary) !important; font-weight: 700; }
+        .flatpickr-day.inRange { background: var(--primary-fade) !important; box-shadow: -5px 0 0 var(--primary-fade), 5px 0 0 var(--primary-fade) !important; border-color: transparent !important; }
+        .flatpickr-day.disabled { color: #d1d5db !important; cursor: not-allowed !important; background-color: #f3f4f6 !important; }
+
+        /* Inputs Styling */
+        .input-row { display: flex; gap: 15px; margin-bottom: 20px; }
+        .input-group { flex: 1; }
+        .input-group label { display: block; font-size: 0.7rem; font-weight: 800; color: var(--gray); margin-bottom: 6px; text-transform: uppercase; }
+        .input-group input { width: 100%; padding: 10px 12px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1rem; font-weight: 700; font-family: 'Inter', sans-serif; transition: all 0.2s; box-sizing: border-box; }
+        .input-group input:focus { border-color: var(--dark); outline: none; }
+
+        /* Receipt Styles */
+        .receipt-container { background-color: #F5F7F9; border: 2px solid #E1E4E8; border-radius: 16px; padding: 20px; margin-top: auto; }
+        .receipt-line { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 12px; font-size: 0.95rem; font-weight: 600; color: var(--gray); border-bottom: 1px solid #EBEBEB; }
+        .receipt-line:last-of-type { border-bottom: none; padding-bottom: 0; }
+        .receipt-line.promo { color: var(--success); }
+        .receipt-line span.value { font-weight: 700; color: var(--dark); font-size: 1.05rem;}
+        .receipt-line.promo span.value { color: var(--success); }
+        .receipt-divider-strong { height: 3px; background-color: var(--dark); margin: 15px 0 20px 0; border-radius: 2px; }
+        .receipt-total-box { display: flex; justify-content: space-between; align-items: center; background-color: var(--primary-super-fade); padding: 15px; border-radius: 12px; border: 1px solid rgba(255, 56, 92, 0.2); }
+        .receipt-total-box .label { font-size: 1.1rem; font-weight: 800; text-transform: uppercase; }
+        .receipt-total-box .amount { font-size: 1.6rem; font-weight: 900; color: var(--primary); line-height: 1; }
+
+        /* Input caché pour Flatpickr */
+        #date-range { display: none; }
+
+        /* Responsive */
+        @media (max-width: 767px) {
+            .input-row { flex-direction: column; gap: 15px; }
+            .controls-section { border-left: none; border-top: 2px solid #f0f0f0; }
+            .calendar-section { padding: 15px 10px; }
+            .receipt-total-box .amount { font-size: 1.4rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>🗓️ Simulateur de Séjour Pro V3</h1>
+            <div id="sync-status" class="status-badge loading">Synchronisation iCal...</div>
+        </header>
+
+        <div class="content-grid">
+            
+            <div class="calendar-section">
+                <input type="text" id="date-range" placeholder="Sélectionner dates">
+            </div>
+
+            <div class="controls-section">
+                
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>Tarif Nuit (€)</label>
+                        <input type="number" id="daily-rate" value="70">
+                    </div>
+                    <div class="input-group">
+                        <label>Caution (€)</label>
+                        <input type="number" id="caution-amount" value="500">
+                    </div>
+                </div>
+
+                <div class="input-group" style="margin-bottom: 25px;">
+                    <label>Code Promo / Remise (%)</label>
+                    <input type="number" id="discount-percent" value="0" min="0" max="100" placeholder="ex: 10">
+                </div>
+
+                <div class="receipt-container">
+                    <div class="receipt-line">
+                        <span id="txt-base">Prix du séjour</span>
+                        <span class="value" id="val-base">0.00 €</span>
+                    </div>
+
+                    <div class="receipt-line promo" id="row-promo" style="display: none;">
+                        <span>🎁 Remise appliquée (<span id="txt-promo-percent">0</span>%)</span>
+                        <span class="value" id="val-promo">- 0.00 €</span>
+                    </div>
+
+                    <div class="receipt-line">
+                        <span>Caution (remboursable)</span>
+                        <span class="value" id="val-caution">500.00 €</span>
+                    </div>
+
+                    <div class="receipt-divider-strong"></div>
+
+                    <div class="receipt-total-box">
+                        <span class="label">Total à régler</span> <br>
+                        <span class="amount" id="val-total">0.00 €</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/fr.js"></script>
+    <script>
+        let fpInstance = null;
+        let startDate = null;
+        let endDate = null;
+        const statusBadge = document.getElementById('sync-status');
+        let reservedDates = [];
+
+        // Fonction pour récupérer les dates depuis le script PHP
+        async function fetchReservedDates() {
+            const phpScriptPath = 'ical_fetcher.php'; // 👈 Chemin vers le nouveau script PHP
+
+            try {
+                const response = await fetch(phpScriptPath); 
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `Erreur serveur HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+
+                statusBadge.textContent = "✅ Synchronisé";
+                statusBadge.className = "status-badge synced";
+                return Array.isArray(data) ? data : [];
+
+            } catch (e) {
+                console.error("Erreur de synchronisation iCal:", e.message);
+                statusBadge.textContent = "⚠️ Erreur Synchro: " + e.message.substring(0, 30) + "...";
+                statusBadge.className = "status-badge error";
+                return []; 
+            }
+        }
+
+        async function initCalendar() {
+            // 1. Récupération des dates
+            reservedDates = await fetchReservedDates();
+
+            // 2. Initialisation du calendrier Flatpickr
+            const isMobile = window.innerWidth < 768;
+
+            fpInstance = flatpickr("#date-range", {
+                mode: "range", 
+                inline: true, 
+                locale: "fr", 
+                dateFormat: "Y-m-d",
+                minDate: "today", 
+                disable: reservedDates, // Utilise les dates récupérées
+                animate: true,
+                showMonths: isMobile ? 1 : 2,
+                onChange: function(selectedDates) {
+                    if (selectedDates.length === 2) {
+                        startDate = selectedDates[0]; endDate = selectedDates[1];
+                        if (startDate > endDate) [startDate, endDate] = [endDate, startDate];
+                    } else {
+                        startDate = null; endDate = null;
+                    }
+                    calculateReceipt();
+                }
+            });
+        }
+
+        // Le reste de la fonction calculateReceipt() et le code de redimensionnement restent inchangés
+        function calculateReceipt() {
+            const rate = parseFloat(document.getElementById('daily-rate').value) || 0;
+            const caution = parseFloat(document.getElementById('caution-amount').value) || 0;
+            const discountPct = parseFloat(document.getElementById('discount-percent').value) || 0;
+
+            const elTxtBase = document.getElementById('txt-base');
+            const elValBase = document.getElementById('val-base');
+            const elRowPromo = document.getElementById('row-promo');
+            const elTxtPromoPct = document.getElementById('txt-promo-percent');
+            const elValPromo = document.getElementById('val-promo');
+            const elValCaution = document.getElementById('val-caution');
+            const elValTotal = document.getElementById('val-total');
+
+            elValCaution.textContent = caution.toFixed(2) + ' €';
+
+            if (!startDate || !endDate) {
+                elTxtBase.textContent = "Prix du séjour (0 nuits)";
+                elValBase.textContent = "0.00 €";
+                elRowPromo.style.display = "none";
+                elValTotal.textContent = caution.toFixed(2) + " €"; 
+                return;
+            }
+
+            const oneDay = 1000 * 60 * 60 * 24;
+            const nights = Math.round((endDate.getTime() - startDate.getTime()) / oneDay);
+
+            const baseCost = nights * rate;
+            let discountAmount = 0;
+
+            if (discountPct > 0) {
+                discountAmount = baseCost * (discountPct / 100);
+                elRowPromo.style.display = "flex";
+                elTxtPromoPct.textContent = discountPct;
+                elValPromo.textContent = "- " + discountAmount.toFixed(2) + " €";
+            } else {
+                elRowPromo.style.display = "none";
+            }
+
+            const finalTotal = baseCost - discountAmount + caution;
+
+            elTxtBase.textContent = `Prix du séjour (${nights} nuit${nights > 1 ? 's' : ''})`;
+            elValBase.textContent = baseCost.toFixed(2) + " €";
+            elValTotal.textContent = finalTotal.toFixed(2) + " €";
+        }
+
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                const isMobile = window.innerWidth < 768;
+                if (fpInstance && fpInstance.config.showMonths !== (isMobile ? 1 : 2)) {
+                    fpInstance.destroy();
+                    initCalendar().then(() => {
+                         if(startDate && endDate) fpInstance.setDate([startDate, endDate]);
+                    });
+                   
+                }
+            }, 200);
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initCalendar();
+            document.querySelectorAll('input[type="number"]').forEach(input => {
+                input.addEventListener('input', calculateReceipt);
+            });
+            calculateReceipt();
+        });
+    </script>
+</body>
+</html>
